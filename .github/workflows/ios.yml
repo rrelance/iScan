@@ -21,7 +21,7 @@ jobs:
             tail -n 30 swift-test.log
             exit 1
           }
-          tail -n 5 swift-test.log
+          grep -E "Executed [0-9]+ tests" swift-test.log | tail -n 1 | sed 's/^/::notice::/'
 
   build-ipa:
     needs: scankit-tests
