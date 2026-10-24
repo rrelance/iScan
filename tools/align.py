@@ -25,6 +25,9 @@ KEEP_FRACTION = 0.8
 ITERATIONS = 30
 REFINE_ITERATIONS = 150
 REFINE_CANDIDATES = 6
+AMBIGUOUS_YAW_DEG = 10
+MIN_WALL_SPREAD_DEG = 20
+MIN_INLIER_FRACTION = 0.5
 START_YAWS_DEG = range(0, 360, 15)
 
 
@@ -102,6 +105,12 @@ def solve_alignment(walls: list[Wall], mesh_wall_xz: np.ndarray, roomplan_floor_
         raise AlignmentError(f"only {len(mesh_wall_xz)} wall points in the mesh (need {MIN_WALL_POINTS}); "
                              "scan more of the walls during the detail pass")
 
+    directions = [np.arctan2(w.x_axis[2], w.x_axis[0]) % np.pi for w in walls]
+    spread = max(min(abs(p - q), np.pi - abs(p - q)) for p in directions for q in directions)
+    if np.degrees(spread) < MIN_WALL_SPREAD_DEG:
+        raise AlignmentError("all RoomPlan walls are parallel, so the position along them is undetermined; "
+                             "alignment needs walls in at least two directions")
+
     pts = mesh_wall_xz
     if len(pts) > MAX_POINTS:
         pts = pts[np.random.default_rng(0).choice(len(pts), MAX_POINTS, replace=False)]
@@ -121,15 +130,24 @@ def solve_alignment(walls: list[Wall], mesh_wall_xz: np.ndarray, roomplan_floor_
     solutions.sort(key=lambda s: s[2])
     refined = [_icp(a, b, pts, phi, t, REFINE_ITERATIONS) for phi, t, _ in solutions[:REFINE_CANDIDATES]]
 
-    # Symmetric rooms fit equally well at several yaws. Both passes start where the user
-    # stands, so among near-equal fits prefer the smallest rotation.
+    # A symmetric room fits equally well at several yaws, and the two passes can start facing
+    # any direction, so there is no safe way to pick one: refuse instead of guessing.
     best = min(s[2] for s in refined)
     close = [s for s in refined if s[2] <= max(best * 1.1, best + 0.005)]
-    phi, t2, _ = min(close, key=lambda s: abs(_wrap(s[0])))
+    phi, t2, _ = min(close, key=lambda s: s[2])
 
     _, d = _closest_on_segments(mesh_wall_xz, a @ _rot2(phi).T + t2, b @ _rot2(phi).T + t2)
     inliers = d < INLIER_DISTANCE
-    rms = float(np.sqrt(np.mean(d[inliers] ** 2))) if inliers.any() else float("inf")
+    if inliers.mean() < MIN_INLIER_FRACTION:
+        raise AlignmentError(f"only {inliers.mean() * 100:.0f}% of mesh wall points match the RoomPlan walls "
+                             f"(need {MIN_INLIER_FRACTION * 100:.0f}%); the two passes may not show the same room")
+    rivals = [s for s in close if abs(np.degrees(_wrap(s[0] - phi))) > AMBIGUOUS_YAW_DEG]
+    if rivals:
+        raise AlignmentError(
+            f"ambiguous: the walls fit equally well at yaw {np.degrees(_wrap(-phi)):.0f} and "
+            f"{np.degrees(_wrap(-rivals[0][0])):.0f} degrees (symmetric room); scan more asymmetric features")
+    # Measured over inliers only; read together with inlier_fraction.
+    rms = float(np.sqrt(np.mean(d[inliers] ** 2)))
 
     yaw = _wrap(-phi)
     c, s = np.cos(yaw), np.sin(yaw)
@@ -143,6 +161,10 @@ def solve_alignment(walls: list[Wall], mesh_wall_xz: np.ndarray, roomplan_floor_
 
 def align_scan(scan_dir: Path) -> Alignment:
     scan_dir = Path(scan_dir)
+    if not (scan_dir / "walls.json").exists():
+        raise AlignmentError("no walls.json: the room pass was skipped, and alignment needs the RoomPlan walls")
+    if not (scan_dir / "mesh.ply").exists():
+        raise AlignmentError("no mesh.ply: the detail pass didn't finish")
     walls = load_walls(scan_dir / "walls.json")
     vertices, faces, cls = load_mesh(scan_dir / "mesh.ply")
     roomplan_floor = min((w.center[1] - w.height / 2 for w in walls), default=0.0)

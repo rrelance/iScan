@@ -38,10 +38,29 @@ def test_recovers_known_transform_lshape():
     assert np.allclose((result.matrix @ corner)[:3], expected, atol=0.03)
 
 
-def test_symmetric_room_prefers_small_yaw():
+def test_symmetric_room_is_reported_as_ambiguous():
     rect = [((0, 0), (4, 0)), ((4, 0), (4, 5)), ((4, 5), (0, 5)), ((0, 5), (0, 0))]
-    result = solve_alignment(walls_from(rect), mesh_xz(rect, 5, [0.3, 0, 0.2]), 0.0, 0.0)
-    assert yaw_error(np.degrees(result.yaw_rad), 5) < 0.5
+    with pytest.raises(AlignmentError, match="ambiguous"):
+        solve_alignment(walls_from(rect), mesh_xz(rect, 175, [0.3, 0, 0.2]), 0.0, 0.0)
+
+
+def test_parallel_walls_raise():
+    corridor = [((0, 0), (6, 0)), ((6, 3), (0, 3))]
+    with pytest.raises(AlignmentError, match="parallel"):
+        solve_alignment(walls_from(corridor), mesh_xz(corridor, 20, [0.5, 0, 0.5]), 0.0, 0.0)
+
+
+def test_mostly_unmatched_mesh_raises():
+    room = mesh_xz(L_ROOM, 37, [1.2, 0, 2.0])
+    clutter = np.random.default_rng(1).uniform(-15, 15, (len(room) * 2, 2))
+    with pytest.raises(AlignmentError, match="match"):
+        solve_alignment(walls_from(L_ROOM), np.vstack([room, clutter]), 0.0, 0.0)
+
+
+def test_skipped_room_pass_raises_clear_error(scan_dir):
+    (scan_dir / "walls.json").unlink()
+    with pytest.raises(AlignmentError, match="room pass was skipped"):
+        align_scan(scan_dir)
 
 
 def test_floor_offset():
