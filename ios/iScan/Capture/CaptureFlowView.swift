@@ -32,7 +32,8 @@ struct CaptureFlowView: View {
                     DetailPassView(controller: DetailCaptureController(dir: scan.dir, scanId: scan.id,
                                                                        reuse: reuseRoomSession ? roomSession : nil,
                                                                        roomInfo: roomInfo),
-                                   onFinished: { manifest = $0; step = .review })
+                                   onFinished: { manifest = $0; step = .review },
+                                   onCancel: { dismiss() })
                 case .review:
                     if let manifest {
                         ReviewView(manifest: manifest, dir: scan.dir, onDone: { dismiss() })

@@ -112,6 +112,12 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
         }
     }
 
+    /// Without this ARKit may restart tracking with a new origin after a screen lock, so later
+    /// frames would no longer line up with earlier frames and the mesh.
+    func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool {
+        true
+    }
+
     func sessionWasInterrupted(_ session: ARSession) {
         trackingMessage = "Tracking lost: move back to a scanned area"
     }
@@ -180,11 +186,20 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
 
     // MARK: Finish
 
+    /// Stops capturing and keeps whatever is already on disk (the scan shows as Incomplete).
+    func cancel() {
+        autoCapture = false
+        session?.pause()
+    }
+
+    /// Safe to call again after a failure; a second tap while finishing is ignored.
     @MainActor
-    func finish() async throws -> Manifest {
+    func finish() async throws -> Manifest? {
+        guard !isFinishing else { return nil }
         guard let session else { throw DetailCaptureError.notStarted }
         autoCapture = false
         isFinishing = true
+        defer { isFinishing = false }
         while pendingWrites > 0 {
             try await Task.sleep(nanoseconds: 100_000_000)
         }
@@ -205,7 +220,6 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
         let manifest = try await Task.detached(priority: .userInitiated) {
             try BundleFinalizer.finalize(dir: dir, manifest: draft, meshChunks: anchors.map(FrameExport.meshChunk))
         }.value
-        isFinishing = false
         return manifest
     }
 

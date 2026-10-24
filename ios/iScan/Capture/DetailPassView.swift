@@ -19,19 +19,32 @@ private struct DetailARView: UIViewRepresentable {
 struct DetailPassView: View {
     @StateObject private var controller: DetailCaptureController
     let onFinished: (Manifest) -> Void
+    let onCancel: () -> Void
 
     @State private var showHint = true
     @State private var finishError: String?
 
-    init(controller: @autoclosure @escaping () -> DetailCaptureController, onFinished: @escaping (Manifest) -> Void) {
+    init(controller: @autoclosure @escaping () -> DetailCaptureController, onFinished: @escaping (Manifest) -> Void,
+         onCancel: @escaping () -> Void) {
         _controller = StateObject(wrappedValue: controller())
         self.onFinished = onFinished
+        self.onCancel = onCancel
     }
 
     var body: some View {
         ZStack {
             DetailARView(controller: controller).ignoresSafeArea()
             VStack(spacing: 8) {
+                HStack {
+                    Button("Cancel") {
+                        controller.cancel()
+                        onCancel()
+                    }
+                    .padding(8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .disabled(controller.isFinishing)
+                    Spacer()
+                }
                 if showHint {
                     banner("Pass 2 of 2: walk slowly around every piece of equipment, then sweep the ceiling for beams and ducts.")
                 }
@@ -55,6 +68,9 @@ struct DetailPassView: View {
             try? await Task.sleep(nanoseconds: 10_000_000_000)
             withAnimation { showHint = false }
         }
+        // A hands-busy scan must not auto-lock the screen (that interrupts tracking).
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     private var bottomBar: some View {
@@ -72,7 +88,12 @@ struct DetailPassView: View {
             Spacer()
             Button("Finish") {
                 Task {
-                    do { onFinished(try await controller.finish()) } catch { finishError = error.localizedDescription }
+                    do {
+                        finishError = nil
+                        if let manifest = try await controller.finish() { onFinished(manifest) }
+                    } catch {
+                        finishError = "Couldn't save the scan: \(error.localizedDescription). Tap Finish to try again."
+                    }
                 }
             }
             .buttonStyle(.borderedProminent)

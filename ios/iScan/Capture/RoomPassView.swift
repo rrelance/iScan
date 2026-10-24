@@ -83,7 +83,11 @@ struct RoomPassView: View {
                 controls.padding()
             }
         }
-        .onAppear { model.start() }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+            model.start()
+        }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     @ViewBuilder

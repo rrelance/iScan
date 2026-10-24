@@ -1,5 +1,6 @@
 import Foundation
 import ScanKit
+import UIKit
 
 enum UploadState: Equatable {
     case idle, uploading, done, failed(String)
@@ -25,6 +26,9 @@ final class Uploader: ObservableObject {
     func upload(scanDir: URL, scanId: String, base: URL) async {
         state = .uploading
         progress = 0
+        // Auto-lock would suspend a large upload partway.
+        UIApplication.shared.isIdleTimerDisabled = true
+        defer { UIApplication.shared.isIdleTimerDisabled = false }
         do {
             try await checkHealth(base)
             let local = try UploadPlan.localFiles(in: scanDir)
