@@ -17,6 +17,8 @@ struct CaptureFlowView: View {
     @State private var roomInfo: Manifest.RoomPassInfo?
     @State private var roomSession: ARSession?
     @State private var errorMessage: String?
+    @State private var manifest: Manifest?
+    @AppStorage("reuseRoomSession") private var reuseRoomSession = false
 
     var body: some View {
         Group {
@@ -27,9 +29,14 @@ struct CaptureFlowView: View {
                                  onSkip: { step = .detail },
                                  onCancel: cancel)
                 case .detail:
-                    Text("Detail pass coming soon")
+                    DetailPassView(controller: DetailCaptureController(dir: scan.dir, scanId: scan.id,
+                                                                       reuse: reuseRoomSession ? roomSession : nil,
+                                                                       roomInfo: roomInfo),
+                                   onFinished: { manifest = $0; step = .review })
                 case .review:
-                    Text("Review")
+                    if let manifest {
+                        ReviewView(manifest: manifest, dir: scan.dir, onDone: { dismiss() })
+                    }
                 }
             } else {
                 ProgressView()

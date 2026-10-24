@@ -33,6 +33,14 @@ public struct CaptureThrottle {
         return true
     }
 
+    /// Manual shutter: ignores movement, tracking and interval, but never overlaps an in-flight capture.
+    public mutating func forceCapture(time: TimeInterval) -> Bool {
+        guard !inFlight else { return false }
+        lastTime = time
+        inFlight = true
+        return true
+    }
+
     public mutating func captureFinished() {
         inFlight = false
     }
