@@ -14,7 +14,12 @@ struct HomeView: View {
                         .foregroundStyle(.secondary)
                 }
                 ForEach(store.scans) { scan in
-                    ScanRow(scan: scan)
+                    NavigationLink {
+                        ScanSummaryList(scanId: scan.id, dir: scan.dir, manifest: scan.manifest)
+                            .navigationTitle(scan.id)
+                    } label: {
+                        ScanRow(scan: scan)
+                    }
                 }
                 .onDelete { offsets in offsets.map { store.scans[$0] }.forEach(store.delete) }
             }
@@ -39,7 +44,7 @@ struct HomeView: View {
             CaptureFlowView()
         }
         .sheet(isPresented: $showingSettings) {
-            Text("Settings")
+            SettingsView()
         }
     }
 }
