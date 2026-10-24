@@ -2,9 +2,12 @@ import SwiftUI
 
 @main
 struct iScanApp: App {
+    @StateObject private var store = ScanStore()
+
     var body: some Scene {
         WindowGroup {
-            Text("iScan")
+            HomeView()
+                .environmentObject(store)
         }
     }
 }
