@@ -1,0 +1,45 @@
+name: iScan
+options:
+  deploymentTarget:
+    iOS: "16.0"
+packages:
+  ScanKit:
+    path: ScanKit
+targets:
+  iScan:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: iScan
+        excludes:
+          - Info.plist
+    dependencies:
+      - package: ScanKit
+    info:
+      path: iScan/Info.plist
+      properties:
+        CFBundleDisplayName: iScan
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        NSCameraUsageDescription: iScan uses the camera and LiDAR to scan your gym.
+        NSLocalNetworkUsageDescription: iScan uploads scans to your PC on this network.
+        NSBonjourServices:
+          - _iscan._tcp
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
+        UIRequiredDeviceCapabilities:
+          - arkit
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.iscan.app
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGNING_ALLOWED: "NO"
+        GENERATE_INFOPLIST_FILE: "NO"

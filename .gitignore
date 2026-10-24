@@ -1,0 +1,12 @@
+scans/
+node_modules/
+ios/*.xcodeproj
+ios/build/
+__pycache__/
+.venv/
+*.partial
+.DS_Store
+.build/
+dist/
+.pytest_cache/
+ios/iScan/Info.plist
