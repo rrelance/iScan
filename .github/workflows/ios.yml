@@ -13,9 +13,15 @@ jobs:
   scankit-tests:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Swift tests
-        run: swift test --package-path ios/ScanKit
+        run: |
+          swift test --package-path ios/ScanKit > swift-test.log 2>&1 || {
+            grep -E "error:|failed|Fatal" swift-test.log | head -40 | sed 's/^/::error::/'
+            tail -n 30 swift-test.log
+            exit 1
+          }
+          tail -n 5 swift-test.log
 
   build-ipa:
     needs: scankit-tests
@@ -23,7 +29,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install tools
         run: brew install xcodegen ldid
       - name: Generate project
@@ -32,11 +38,14 @@ jobs:
       - name: Build unsigned app
         working-directory: ios
         run: |
-          set -o pipefail
           xcodebuild -project iScan.xcodeproj -scheme iScan -sdk iphoneos \
             -configuration Release -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build | tail -n 50
+            build > xcodebuild.log 2>&1 || {
+              grep -E "error:" xcodebuild.log | sort -u | head -40 | sed 's/^/::error::/'
+              tail -n 30 xcodebuild.log
+              exit 1
+            }
       - name: Package IPA
         run: |
           mkdir -p Payload
