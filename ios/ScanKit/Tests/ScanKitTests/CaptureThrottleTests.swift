@@ -43,6 +43,17 @@ final class CaptureThrottleTests: XCTestCase {
         XCTAssertFalse(t.shouldCapture(transform: pose(x: 0.6), time: 0.2, trackingNormal: true))
     }
 
+    func testForceCaptureIgnoresMovementButNotInFlight() {
+        var t = CaptureThrottle()
+        _ = t.shouldCapture(transform: pose(), time: 0, trackingNormal: true)
+        XCTAssertFalse(t.forceCapture(time: 0.1))
+        t.captureFinished()
+        XCTAssertTrue(t.forceCapture(time: 0.2))
+        XCTAssertFalse(t.shouldCapture(transform: pose(x: 5), time: 5, trackingNormal: true))
+        t.captureFinished()
+        XCTAssertTrue(t.shouldCapture(transform: pose(x: 5), time: 5, trackingNormal: true))
+    }
+
     func testLimitedTrackingNeverCaptures() {
         var t = CaptureThrottle()
         XCTAssertFalse(t.shouldCapture(transform: pose(), time: 0, trackingNormal: false))
