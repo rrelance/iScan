@@ -1,4 +1,3 @@
-import ARKit
 import RoomPlan
 import SwiftUI
 
@@ -61,8 +60,7 @@ private struct RoomCaptureContainer: UIViewRepresentable {
 
 /// Pass 1: RoomPlan walls, doors, windows and recognized objects.
 struct RoomPassView: View {
-    /// Called with the finished room and RoomPlan's AR session (for the experimental session reuse).
-    let onFinish: (CapturedRoom, ARSession) -> Void
+    let onFinish: (CapturedRoom) -> Void
     let onSkip: () -> Void
     let onCancel: () -> Void
 
@@ -101,7 +99,7 @@ struct RoomPassView: View {
         case .processing:
             ProgressView("Building room…").padding().background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         case .presented(let room):
-            Button("Continue to detail pass") { onFinish(room, model.captureView.captureSession.arSession) }
+            Button("Continue to detail pass") { onFinish(room) }
                 .buttonStyle(.borderedProminent).controlSize(.large)
         case .failed(let message):
             VStack(spacing: 8) {

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("serverURL") private var serverURL = ""
-    @AppStorage("reuseRoomSession") private var reuseRoomSession = false
     @StateObject private var discovery = ServerDiscovery()
     @Environment(\.dismiss) private var dismiss
     @State private var testResult: String?
@@ -43,14 +42,6 @@ struct SettingsView: View {
                     Button("Test connection") { Task { await test() } }
                         .disabled(URL(string: serverURL) == nil || serverURL.isEmpty)
                     if let testResult { Text(testResult).font(.callout) }
-                }
-
-                Section {
-                    Toggle("Reuse RoomPlan session", isOn: $reuseRoomSession)
-                } header: {
-                    Text("Experimental")
-                } footer: {
-                    Text("Continues RoomPlan's AR session for the detail pass, which may keep both passes in one coordinate frame on iOS 16.")
                 }
             }
             .navigationTitle("Settings")

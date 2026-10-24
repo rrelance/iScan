@@ -1,4 +1,3 @@
-import ARKit
 import RoomPlan
 import ScanKit
 import SwiftUI
@@ -15,22 +14,19 @@ struct CaptureFlowView: View {
     @State private var scan: (id: String, dir: URL)?
     @State private var step: CaptureStep = .room
     @State private var roomInfo: Manifest.RoomPassInfo?
-    @State private var roomSession: ARSession?
     @State private var errorMessage: String?
     @State private var manifest: Manifest?
-    @AppStorage("reuseRoomSession") private var reuseRoomSession = false
 
     var body: some View {
         Group {
             if let scan {
                 switch step {
                 case .room:
-                    RoomPassView(onFinish: { room, session in finishRoom(room, session: session, dir: scan.dir) },
+                    RoomPassView(onFinish: { room in finishRoom(room, dir: scan.dir) },
                                  onSkip: { step = .detail },
                                  onCancel: cancel)
                 case .detail:
                     DetailPassView(controller: DetailCaptureController(dir: scan.dir, scanId: scan.id,
-                                                                       reuse: reuseRoomSession ? roomSession : nil,
                                                                        roomInfo: roomInfo),
                                    onFinished: { manifest = $0; step = .review },
                                    onCancel: { dismiss() })
@@ -60,8 +56,7 @@ struct CaptureFlowView: View {
         }
     }
 
-    private func finishRoom(_ room: CapturedRoom, session: ARSession, dir: URL) {
-        roomSession = session
+    private func finishRoom(_ room: CapturedRoom, dir: URL) {
         roomInfo = Manifest.RoomPassInfo(surfaceCount: room.walls.count + room.doors.count + room.windows.count
                                              + room.openings.count,
                                          objectCount: room.objects.count)

@@ -18,7 +18,6 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
 
     private let dir: URL
     private let scanId: String
-    private let reuse: ARSession?
     private let roomInfo: Manifest.RoomPassInfo?
     private let createdAt = Date()
     private var session: ARSession?
@@ -42,10 +41,9 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
         let imageResolution: CGSize
     }
 
-    init(dir: URL, scanId: String, reuse: ARSession?, roomInfo: Manifest.RoomPassInfo?) {
+    init(dir: URL, scanId: String, roomInfo: Manifest.RoomPassInfo?) {
         self.dir = dir
         self.scanId = scanId
-        self.reuse = reuse
         self.roomInfo = roomInfo
     }
 
@@ -61,18 +59,11 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
             config.videoFormat = format
         }
 
-        let session: ARSession
-        if let reuse {
-            // Experimental: keep RoomPlan's world origin by continuing its session without a reset.
-            view.session = reuse
-            session = reuse
-            session.delegate = self
-            session.run(config)
-        } else {
-            session = view.session
-            session.delegate = self
-            session.run(config, options: [.resetTracking, .removeExistingAnchors])
-        }
+        // A fresh session: continuing RoomPlan's session doesn't keep its origin on iOS 16
+        // (tested 2026-10-24), so tools/align.py registers the two passes instead.
+        let session = view.session
+        session.delegate = self
+        session.run(config, options: [.resetTracking, .removeExistingAnchors])
         self.session = session
     }
 
@@ -214,7 +205,7 @@ final class DetailCaptureController: NSObject, ObservableObject, ARSessionDelega
         session.pause()
 
         let draft = Manifest(scanId: scanId, createdAt: createdAt, device: Self.deviceModel(),
-                             systemVersion: UIDevice.current.systemVersion, sessionReused: reuse != nil,
+                             systemVersion: UIDevice.current.systemVersion, sessionReused: false,
                              roomPass: roomInfo, detailPass: Manifest.DetailPassInfo(frameCount: 0, meshFaceCount: 0))
         let dir = dir
         let manifest = try await Task.detached(priority: .userInitiated) {
