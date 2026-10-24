@@ -1,8 +1,9 @@
-import { networkInterfaces } from "node:os";
+import { hostname, networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Bonjour } from "bonjour-service";
 import { buildApp } from "./app.js";
+import { advertisement } from "./bonjour.js";
 
 const PORT = 8787;
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -25,7 +26,7 @@ console.log('  New-NetFirewallRule -DisplayName "iScan mDNS" -Direction Inbound 
 
 try {
   const bonjour = new Bonjour({}, (err: unknown) => console.warn(`Bonjour error (use the manual URL): ${String(err)}`));
-  bonjour.publish({ name: "iScan", type: "iscan", port: PORT });
+  bonjour.publish(advertisement(hostname(), PORT));
   const shutdown = () => bonjour.unpublishAll(() => bonjour.destroy(() => process.exit(0)));
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
