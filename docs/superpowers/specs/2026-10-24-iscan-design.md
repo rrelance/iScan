@@ -60,6 +60,7 @@ Two passes, run back to back:
    - Save an `ARWorldMap` at the end. **The detail session's world frame is the master frame.**
    - **Alignment:** RoomPlan walls are registered to the detail session's mesh in processing (`align.py`: match wall-classified mesh planes to RoomPlan wall planes and floor height). It solves yaw + translation, with the residual reported.
    - **Spike option:** test whether re-running RoomPlan's own `arSession` keeps the origin on iOS 16 (that API is officially iOS 17+). If it does, registration becomes a sanity check only.
+   - **Spike result (2026-10-24, iPhone 12 Pro Max, iOS 16.4.1): session reuse does NOT keep the origin.** The reuse scan `20261024-180549` still needed yaw −53.2°, t = (0.38, 0.09, −0.26) m. **Registration is required.** It works well: the full scan `20261024-174746` aligned at 4.5 cm rms with 79% inliers, and the reuse scan at 4.3 cm / 83%. The reuse toggle stays off by default.
 
 **Bundle** `scans/<yyyyMMdd-HHmmss>/`:
 - `manifest.json` (schema version, device, iOS, units = meters)
