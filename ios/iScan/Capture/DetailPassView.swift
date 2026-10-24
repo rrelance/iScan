@@ -67,11 +67,7 @@ struct DetailPassView: View {
         .task {
             try? await Task.sleep(nanoseconds: 10_000_000_000)
             withAnimation { showHint = false }
-        }
-        // A hands-busy scan must not auto-lock the screen (that interrupts tracking).
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
-    }
+        }    }
 
     private var bottomBar: some View {
         HStack {

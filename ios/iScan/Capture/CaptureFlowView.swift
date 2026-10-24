@@ -49,7 +49,11 @@ struct CaptureFlowView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        // A hands-busy scan must not auto-lock the screen (that interrupts tracking). Set once for the
+        // whole flow: SwiftUI runs the next step's onAppear before the previous step's onDisappear.
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
             if scan == nil {
                 do { scan = try store.newScanDir() } catch { errorMessage = error.localizedDescription }
             }
